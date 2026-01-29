@@ -3,25 +3,40 @@ let firebaseConfig = null;
 let auth;
 let db;
 
+// Fallback config for when API is unavailable
+const fallbackConfig = {
+    apiKey: "AIzaSyAxNI6m2Vbb6vAlOzQkQHa41tzhHelCr3k",
+    authDomain: "kaagaz-55163.firebaseapp.com",
+    projectId: "kaagaz-55163",
+    storageBucket: "kaagaz-55163.firebasestorage.app",
+    messagingSenderId: "44711337536",
+    appId: "1:447113375361:web:090ae41355c66d3dbfe780"
+};
+
 async function loadFirebaseConfig() {
     try {
-        const response = await fetch('/api/config');
+        const response = await fetch('/api/config', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
         if (!response.ok) {
-            throw new Error('Failed to load Firebase config');
+            console.warn('API config unavailable, using fallback');
+            return fallbackConfig;
         }
-        firebaseConfig = await response.json();
-        return firebaseConfig;
+        
+        const config = await response.json();
+        return config;
     } catch (error) {
-        console.error('Error loading Firebase config:', error);
-        // Fallback: use empty config (will fail gracefully)
-        return null;
+        console.warn('Error loading Firebase config from API, using fallback:', error);
+        return fallbackConfig;
     }
 }
 
 async function initFirebase() {
     if (typeof firebase !== 'undefined') {
         try {
-            // Load config from backend
+            // Load config from backend or fallback
             if (!firebaseConfig) {
                 firebaseConfig = await loadFirebaseConfig();
             }
