@@ -181,6 +181,17 @@ Be thorough and extract as much information as possible. If information is not c
                 });
 
                 const data = await response.json();
+                
+                // Check for API errors
+                if (!response.ok) {
+                    throw new Error(data.error?.message || `API error: ${response.status}`);
+                }
+                
+                // Safely access nested properties
+                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+                    throw new Error('Invalid API response: No candidates returned');
+                }
+                
                 const analysisText = data.candidates[0].content.parts[0].text;
                 
                 // Extract JSON from response
@@ -205,7 +216,20 @@ Be thorough and extract as much information as possible. If information is not c
             } catch (error) {
                 console.error('Analysis error:', error);
                 document.getElementById('uploadProgress').classList.add('hidden');
-                alert('Analysis failed. Please try again.');
+                
+                // Better error messages
+                let errorMessage = 'Analysis failed. ';
+                if (error.message.includes('API error: 408')) {
+                    errorMessage += 'Request timeout. The file might be too large or the connection is slow.';
+                } else if (error.message.includes('Invalid API response')) {
+                    errorMessage += 'The AI service did not return a valid response. Please try again.';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage += 'Network error. Please check your internet connection.';
+                } else {
+                    errorMessage += error.message || 'Please try again.';
+                }
+                
+                alert(errorMessage);
             }
         }
 
