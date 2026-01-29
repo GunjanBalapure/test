@@ -201,7 +201,7 @@
         
         // Initialize Firebase on load
         window.addEventListener('DOMContentLoaded', async function() {
-            console.log('Initializing Firebase...');
+            console.log('Page loaded, initializing Firebase...');
             const firebaseReady = await initFirebase();
             
             if (!firebaseReady) {
@@ -210,35 +210,52 @@
                 return;
             }
             
-            // Check if user is already logged in
-            const user = JSON.parse(localStorage.getItem('kaagaz_user') || '{}');
-            if (user && user.loggedIn && user.uid) {
-                // Verify with Firebase
-                if (auth && auth.currentUser && auth.currentUser.uid === user.uid) {
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-            }
+            console.log('Firebase ready, checking authentication...');
             
-            // Handle Google redirect result
+            // Handle Google redirect result FIRST before checking localStorage
             try {
                 const result = await handleGoogleRedirect();
+                console.log('Google redirect check result:', result);
+                
                 if (result && result.success && result.user) {
+                    console.log('Google login succeeded, saving user data...');
+                    
                     // Store user data and redirect
-                    localStorage.setItem('kaagaz_user', JSON.stringify({
+                    const userData = {
                         loggedIn: true,
                         uid: result.user.uid,
                         email: result.user.email || '',
                         name: result.user.displayName || 'User',
                         photoURL: result.user.photoURL || '',
                         phone: result.user.phoneNumber || ''
-                    }));
+                    };
                     
-                    window.location.href = 'dashboard.html';
+                    localStorage.setItem('kaagaz_user', JSON.stringify(userData));
+                    console.log('User data saved, redirecting to dashboard...');
+                    
+                    // Small delay to ensure localStorage is written
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 100);
+                    return;
                 }
             } catch (error) {
                 console.error('Redirect handling error:', error);
             }
+            
+            // Check if user is already logged in (regular login)
+            const user = JSON.parse(localStorage.getItem('kaagaz_user') || '{}');
+            if (user && user.loggedIn && user.uid) {
+                console.log('Existing session found');
+                // Verify with Firebase
+                if (auth && auth.currentUser && auth.currentUser.uid === user.uid) {
+                    console.log('Session valid, redirecting to dashboard...');
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+            }
+            
+            console.log('No active session, showing login page');
         });
     </script>
 </body>

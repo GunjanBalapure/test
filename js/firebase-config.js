@@ -136,21 +136,35 @@ async function firebaseGoogleLogin() {
 // Handle redirect result after Google login
 async function handleGoogleRedirect() {
     try {
+        console.log('Checking for Google redirect result...');
         const result = await auth.getRedirectResult();
-        if (result.user) {
+        
+        console.log('Redirect result:', result);
+        
+        if (result && result.user) {
+            console.log('Google login successful:', result.user.email);
+            
             // Store user data in Firestore
-            await db.collection('users').doc(result.user.uid).set({
-                name: result.user.displayName,
-                email: result.user.email,
-                photoURL: result.user.photoURL,
-                phone: result.user.phoneNumber || '',
-                lastLogin: new Date(),
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            try {
+                await db.collection('users').doc(result.user.uid).set({
+                    name: result.user.displayName,
+                    email: result.user.email,
+                    photoURL: result.user.photoURL,
+                    phone: result.user.phoneNumber || '',
+                    lastLogin: new Date(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                console.log('User data saved to Firestore');
+            } catch (firestoreError) {
+                console.error('Firestore save error:', firestoreError);
+                // Continue even if Firestore fails
+            }
             
             return { success: true, user: result.user };
         }
-        return { success: false };
+        
+        console.log('No redirect result found');
+        return { success: false, noResult: true };
     } catch (error) {
         console.error('Google redirect error:', error);
         return { success: false, message: error.message };
