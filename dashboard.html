@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Google Kaagaz AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="js/session.js"></script>
+    <style>
+        :root { --maroon: #800000; --beige: #F5F5DC; --cream: #FFFEF8; --saffron: #FF9933; --green: #138808; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Sora', sans-serif; background: var(--beige); overflow-x: hidden; }
+        h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+        
+        .tri-color-bar { height: 6px; background: linear-gradient(90deg, var(--saffron) 0%, white 33%, var(--green) 66%, #000080 100%); }
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border: 2px solid rgba(128, 0, 0, 0.1); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); }
+        .upload-zone { border: 3px dashed var(--maroon); border-radius: 24px; padding: 60px; transition: all 0.3s ease; background: white; }
+        .upload-zone:hover { border-color: var(--saffron); transform: scale(1.02); box-shadow: 0 20px 50px rgba(128, 0, 0, 0.15); }
+        .insight-card { background: linear-gradient(135deg, white 0%, var(--cream) 100%); border-radius: 20px; padding: 24px; border: 2px solid var(--maroon)/10; transition: all 0.3s ease; }
+        .insight-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); border-color: var(--maroon); }
+        .btn-primary { background: var(--maroon); color: white; padding: 16px 40px; border-radius: 16px; font-weight: 700; border: none; cursor: pointer; transition: all 0.4s ease; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 10px 30px rgba(128, 0, 0, 0.3); }
+        .btn-primary:hover { transform: translateY(-4px) scale(1.05); box-shadow: 0 15px 40px rgba(128, 0, 0, 0.4); }
+        .chat-bubble { animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .material-symbols-rounded { font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body>
+    <div class="tri-color-bar"></div>
+    
+    <!-- Navigation -->
+    <nav class="glass py-3 px-4 md:py-4 md:px-12 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2 md:gap-4">
+                <div class="w-10 h-10 md:w-12 md:h-12 bg-maroon rounded-xl flex items-center justify-center shadow-lg">
+                    <span class="material-symbols-rounded text-xl md:text-2xl" style="color: white !important; font-variation-settings: 'FILL' 1, 'wght' 700;">folder_special</span>
+                </div>
+                <div class="hidden sm:block">
+                    <div class="text-base md:text-xl font-black text-maroon tracking-tight">KAAGAZ AI</div>
+                    <div class="text-[8px] md:text-[10px] font-bold text-gray-500 uppercase">Intelligent Document System</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-1 sm:gap-2 md:gap-3">
+                <button class="px-3 py-2 md:px-6 md:py-3 bg-maroon rounded-lg md:rounded-xl font-bold transition shadow-lg" style="color: white !important;">
+                    <span class="material-symbols-rounded text-sm align-middle" style="font-variation-settings: 'FILL' 1, 'wght' 700; color: white !important;">dashboard</span>
+                    <span class="hidden lg:inline ml-2" style="color: white !important;">Dashboard</span>
+                </button>
+                <button onclick="window.location.href='chatbot.html'" class="px-3 py-2 md:px-6 md:py-3 bg-white border-2 border-maroon text-maroon rounded-lg md:rounded-xl font-bold hover:bg-maroon hover:text-white transition">
+                    <span class="material-symbols-rounded text-sm align-middle" style="font-variation-settings: 'FILL' 1, 'wght' 700;">chat</span>
+                    <span class="hidden lg:inline ml-2">Chatbot</span>
+                </button>
+                <button onclick="window.location.href='upload.html'" class="px-3 py-2 md:px-6 md:py-3 bg-white border-2 border-maroon text-maroon rounded-lg md:rounded-xl font-bold hover:bg-maroon hover:text-white transition">
+                    <span class="material-symbols-rounded text-sm align-middle" style="font-variation-settings: 'FILL' 1, 'wght' 700;">upload_file</span>
+                    <span class="hidden lg:inline ml-2">Upload</span>
+                </button>
+                <button onclick="window.location.href='vault.html'" class="px-3 py-2 md:px-6 md:py-3 bg-white border-2 border-maroon text-maroon rounded-lg md:rounded-xl font-bold hover:bg-maroon hover:text-white transition">
+                    <span class="material-symbols-rounded text-sm align-middle" style="font-variation-settings: 'FILL' 1, 'wght' 700;">folder_open</span>
+                    <span class="hidden lg:inline ml-2">Documents</span>
+                </button>
+                <button onclick="window.location.href='profile.html'" class="hidden sm:flex px-3 py-2 md:px-6 md:py-3 bg-white border-2 border-maroon text-maroon rounded-lg md:rounded-xl font-bold hover:bg-maroon hover:text-white transition items-center">
+                    <span class="material-symbols-rounded text-sm align-middle" style="font-variation-settings: 'FILL' 1, 'wght' 700;">person</span>
+                    <span class="hidden lg:inline ml-2">Profile</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+        <!-- Hero Section -->
+        <div class="text-center mb-8 sm:mb-16">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-3 sm:mb-4" style="background: linear-gradient(135deg, var(--maroon) 0%, var(--saffron) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Dashboard
+            </h1>
+            <p class="text-base sm:text-lg md:text-xl text-gray-700 font-medium px-4">Quick overview of your documents and insights</p>
+        </div>
+
+        <!-- Insights Section -->
+        <div class="mb-8 sm:mb-16">
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-black text-maroon mb-4 sm:mb-8">AI Insights</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                <div class="insight-card">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
+                            <span class="material-symbols-rounded text-3xl" style="color: white !important; font-variation-settings: 'FILL' 1, 'wght' 700;">auto_awesome</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-maroon">Scholarship Ready</h3>
+                            <p class="text-sm text-gray-600 font-semibold">3 Opportunities Found</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 font-medium mb-4">Based on your 12th marks (85.6%) and EWS certificate, you're eligible for PM Scholarship & State Merit programs.</p>
+                    <button class="w-full py-3 bg-blue-50 text-blue-700 rounded-xl font-bold hover:bg-blue-100 transition">View Details</button>
+                </div>
+
+                <div class="insight-card">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-xl">
+                            <span class="material-symbols-rounded text-3xl" style="color: white !important; font-variation-settings: 'FILL' 1, 'wght' 700;">notification_important</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-maroon">Renewal Alert</h3>
+                            <p class="text-sm text-gray-600 font-semibold">2 Documents Expiring</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 font-medium mb-4">Your Income Certificate expires in 45 days. Health Insurance renewal due on March 15, 2026.</p>
+                    <button class="w-full py-3 bg-yellow-50 text-yellow-700 rounded-xl font-bold hover:bg-yellow-100 transition">Add to Calendar</button>
+                </div>
+
+                <div class="insight-card">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl">
+                            <span class="material-symbols-rounded text-3xl" style="color: white !important; font-variation-settings: 'FILL' 1, 'wght' 700;">verified</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-maroon">Vault Status</h3>
+                            <p class="text-sm text-gray-600 font-semibold">100% Secure</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 font-medium mb-4">7 documents indexed. All metadata extracted. Life-Graph connections active.</p>
+                    <button onclick="window.location.href='vault.html'" class="w-full py-3 bg-green-50 text-green-700 rounded-xl font-bold hover:bg-green-100 transition">Open Vault</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Assistant -->
+        <div class="glass rounded-3xl p-8">
+            <h2 class="text-3xl font-black text-maroon mb-6">Ask Gemini AI</h2>
+            <div id="chatHistory" class="bg-white/50 rounded-2xl p-6 mb-6 min-h-[300px] max-h-[400px] overflow-y-auto space-y-4">
+                <div class="chat-bubble bg-maroon/10 border-2 border-maroon/20 rounded-2xl p-6">
+             Quick Actions -->
+        <div class="grid md:grid-cols-4 gap-6">
+            <button onclick="window.location.href='upload.html'" class="glass rounded-2xl p-8 text-center hover:scale-105 transition">
+                <div class="w-16 h-16 bg-gradient-to-br from-maroon to-red-700 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl">
+                    <span class="material-symbols-rounded text-3xl" style="color: white !important; font-variation-settings: 'FILL' 1, 'wght' 700;">upload_file</span>
+                </div>
+                <h3 class="text-xl font-black text-maroon">Upload</h3>
+                <p class="text-sm text-gray-600 mt-2">Add new document</p>
+            </button>
+
+            <button onclick="window.location.href='vault.html'" class="glass rounded-2xl p-8 text-center hover:scale-105 transition">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl">
+                    <span class="material-symbols-rounded text-3xl" style="color: white !important; font-variation-settings: 'FILL' 1, 'wght' 700;">folder_open</span>
+                </div>
+                <h3 class="text-xl font-black text-maroon">Documents</h3>
+                <p class="text-sm text-gray-600 mt-2">View all files</p>
+            </button>
+
+            <button onclick="window.location.href='chatbot.html'" class="glass rounded-2xl p-8 text-center hover:scale-105 transition">
+                <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl">
+                    <span class="material-symbols-rounded text-3xl" style="color: white !important; font-variation-settings: 'FILL' 1, 'wght' 700;">chat</span>
+                </div>
+                <h3 class="text-xl font-black text-maroon">Ask AI</h3>
+                <p class="text-sm text-gray-600 mt-2">Chat with Gemini</p>
+            </button>
+
+            <button onclick="window.location.href='profile.html'" class="glass rounded-2xl p-8 text-center hover:scale-105 transition">
+                <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl">
+                    <span class="material-symbols-rounded text-3xl" style="color: white !important; font-variation-settings: 'FILL' 1, 'wght' 700;">person</span>
+                </div>
+                <h3 class="text-xl font-black text-maroon">Profile</h3>
+                <p class="text-sm text-gray-600 mt-2">Account settings</p>
+            </button>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/dashboard.js">
