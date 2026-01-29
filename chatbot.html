@@ -100,7 +100,7 @@
             
             // User message
             const userMsg = document.createElement('div');
-            userMsg.className = 'chat-bubble bg-white border-2 border-gray-200 rounded-2xl p-6 text-right';
+            userMsg.className = 'chat-bubble bg-white border-2 border-gray-200 rounded-2xl p-6 text-right ml-auto max-w-[80%]';
             userMsg.innerHTML = `<p class="font-bold text-gray-800">${message}</p>`;
             chat.appendChild(userMsg);
             
@@ -109,32 +109,37 @@
 
             // Show loading indicator
             const loadingMsg = document.createElement('div');
-            loadingMsg.className = 'chat-bubble bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-maroon/20 rounded-2xl p-6';
+            loadingMsg.className = 'chat-bubble bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-maroon/20 rounded-2xl p-6 max-w-[90%]';
             loadingMsg.id = 'loadingMsg';
-            loadingMsg.innerHTML = `<p class="font-bold mb-2 text-maroon">🤖 Gemini AI:</p><p class="font-medium text-gray-800">Thinking...</p>`;
+            loadingMsg.innerHTML = `<p class="font-bold mb-2 text-maroon flex items-center gap-2"><span class="material-symbols-rounded animate-spin">refresh</span> Gemini AI:</p><p class="font-medium text-gray-800">Thinking...</p>`;
             chat.appendChild(loadingMsg);
             chat.scrollTop = chat.scrollHeight;
 
             try {
-                // Ensure config is loaded
-                await new Promise(resolve => setTimeout(resolve, 100));
+                // Call backend API for secure communication
+                const systemPrompt = `You are Kaagaz AI, an intelligent assistant for managing Indian government documents and schemes. 
+
+RULES:
+1. Give answers in clear, numbered bullet points
+2. Be concise - maximum 5-6 points per response
+3. Use simple language
+4. Focus on Indian documents (Aadhaar, PAN, Passport, etc.)
+5. Provide actionable information
+6. If asked about eligibility, list requirements as numbered points
+
+Format your responses like this:
+✓ Point 1
+✓ Point 2
+✓ Point 3
+
+Be helpful, friendly, and precise.`;
                 
-                // Call Gemini API with Flash model
-                const systemPrompt = "You are Kaagaz AI, an intelligent assistant for managing Indian government documents and schemes. Help users with document-related queries, eligibility for scholarships, deadlines, and document requirements. Be concise and helpful.";
-                
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
-                
-                const response = await fetch(apiUrl, {
+                const response = await fetch('/api/chat', {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ 
-                        contents: [{ 
-                            parts: [{ text: systemPrompt + "\n\nUser Query: " + message }] 
-                        }],
-                        generationConfig: {
-                            temperature: 0.7,
-                            maxOutputTokens: 1024,
-                        }
+                        query: message,
+                        systemPrompt: systemPrompt
                     })
                 });
 
@@ -143,28 +148,51 @@
                 // Remove loading message
                 loadingMsg.remove();
 
-                if (data.candidates && data.candidates[0]) {
-                    const aiResponse = data.candidates[0].content.parts[0].text;
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to get response');
+                }
+
+                if (data.success && data.text) {
+                    const aiResponse = data.text;
+                    
+                    // Format response with line breaks preserved
+                    const formattedResponse = aiResponse
+                        .replace(/\n/g, '<br>')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/✓/g, '<span class="text-green-600">✓</span>')
+                        .replace(/•/g, '<span class="text-maroon">•</span>');
                     
                     // AI response
                     const aiMsg = document.createElement('div');
-                    aiMsg.className = 'chat-bubble bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-maroon/20 rounded-2xl p-6';
-                    aiMsg.innerHTML = `<p class="font-bold mb-2 text-maroon">🤖 Gemini AI:</p><p class="font-medium text-gray-800 whitespace-pre-wrap">${aiResponse}</p>`;
+                    aiMsg.className = 'chat-bubble bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-maroon/20 rounded-2xl p-6 max-w-[90%]';
+                    aiMsg.innerHTML = `
+                        <p class="font-bold mb-3 text-maroon flex items-center gap-2">
+                            <span class="material-symbols-rounded">smart_toy</span>
+                            Gemini AI
+                        </p>
+                        <div class="font-medium text-gray-800 leading-relaxed">${formattedResponse}</div>
+                    `;
                     chat.appendChild(aiMsg);
                 } else {
-                    throw new Error('No response from Gemini');
+                    throw new Error('No response from AI');
                 }
                 
             } catch (error) {
-                console.error('Gemini API Error:', error);
+                console.error('Chat Error:', error);
                 
                 // Remove loading message
                 document.getElementById('loadingMsg')?.remove();
                 
                 // Error message
                 const errorMsg = document.createElement('div');
-                errorMsg.className = 'chat-bubble bg-red-50 border-2 border-red-300 rounded-2xl p-6';
-                errorMsg.innerHTML = `<p class="font-bold mb-2 text-red-700">⚠️ Error:</p><p class="font-medium text-red-600">Failed to connect to Gemini AI. Please check your API key and internet connection.</p>`;
+                errorMsg.className = 'chat-bubble bg-red-50 border-2 border-red-300 rounded-2xl p-6 max-w-[90%]';
+                errorMsg.innerHTML = `
+                    <p class="font-bold mb-2 text-red-700 flex items-center gap-2">
+                        <span class="material-symbols-rounded">error</span>
+                        Error
+                    </p>
+                    <p class="font-medium text-red-600">Failed to connect to AI. Please try again.</p>
+                `;
                 chat.appendChild(errorMsg);
             }
             

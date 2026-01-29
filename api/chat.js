@@ -39,7 +39,13 @@ module.exports = async (req, res) => {
                 body: JSON.stringify({
                     contents: [{
                         parts: [{ text: prompt }]
-                    }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 1024,
+                        topP: 0.8,
+                        topK: 40
+                    }
                 })
             }
         );
