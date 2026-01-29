@@ -24,8 +24,14 @@ module.exports = async (req, res) => {
         const GEMINI_MODEL = 'gemini-2.5-flash';
 
         if (!GEMINI_API_KEY) {
-            return res.status(500).json({ error: 'Gemini API key not configured' });
+            console.error('GEMINI_API_KEY not found in environment variables');
+            return res.status(500).json({ 
+                error: 'Gemini API key not configured',
+                details: 'Please add GEMINI_API_KEY to Vercel environment variables'
+            });
         }
+
+        console.log('Using Gemini model:', GEMINI_MODEL);
 
         const prompt = systemPrompt 
             ? `${systemPrompt}\n\nUser Query: ${query}`
@@ -55,13 +61,16 @@ module.exports = async (req, res) => {
         if (!response.ok) {
             console.error('Gemini API error:', data);
             return res.status(response.status).json({ 
-                error: data.error?.message || 'Gemini API error'
+                error: data.error?.message || 'Gemini API error',
+                statusCode: response.status
             });
         }
 
         if (!data.candidates || !data.candidates[0]) {
+            console.error('No candidates in response:', data);
             return res.status(500).json({ 
-                error: 'No response from AI'
+                error: 'No response from AI',
+                details: 'The AI did not generate a response'
             });
         }
 

@@ -183,15 +183,29 @@ Be helpful, friendly, and precise.`;
                 // Remove loading message
                 document.getElementById('loadingMsg')?.remove();
                 
+                // Determine error message
+                let errorTitle = 'Connection Error';
+                let errorMessage = 'Failed to connect to AI. Please try again.';
+                
+                if (error.message.includes('Failed to fetch')) {
+                    errorTitle = 'Network Error';
+                    errorMessage = 'Cannot reach the server. Check your internet connection.';
+                } else if (error.message.includes('API key not configured')) {
+                    errorTitle = 'Configuration Error';
+                    errorMessage = 'Gemini API key is not configured. Please contact support.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
                 // Error message
                 const errorMsg = document.createElement('div');
                 errorMsg.className = 'chat-bubble bg-red-50 border-2 border-red-300 rounded-2xl p-6 max-w-[90%]';
                 errorMsg.innerHTML = `
                     <p class="font-bold mb-2 text-red-700 flex items-center gap-2">
                         <span class="material-symbols-rounded">error</span>
-                        Error
+                        ${errorTitle}
                     </p>
-                    <p class="font-medium text-red-600">Failed to connect to AI. Please try again.</p>
+                    <p class="font-medium text-red-600">${errorMessage}</p>
                 `;
                 chat.appendChild(errorMsg);
             }
