@@ -1,5 +1,5 @@
 const cloudinary = require('../../config/cloudinary');
-const formidable = require('formidable');
+const { formidable } = require('formidable');
 
 module.exports = async (req, res) => {
     if (req.method !== 'POST') {
