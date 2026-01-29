@@ -3,8 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kaagaz AI - Redirecting...</title>
+    <title>Kaagaz AI - Document Management System</title>
     <script>
+        // Force HTTPS on Vercel
+        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
+            window.location.protocol = 'https:';
+        }
+        
         // Automatically redirect to login page
         window.location.href = 'login.html';
     </script>
