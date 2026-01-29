@@ -176,9 +176,11 @@
     <script src="js/firebase-config.js"></script>
     <script>
         // Initialize Firebase on page load
-        if (typeof initFirebase === 'function') {
-            initFirebase();
-        }
+        (async function() {
+            if (typeof initFirebase === 'function') {
+                await initFirebase();
+            }
+        })();
     </script>
     <script src="js/config.js"></script>
     <script src="js/dashboard.js">

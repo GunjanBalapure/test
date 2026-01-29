@@ -96,22 +96,13 @@ async function handleGoogleLogin() {
         return;
     }
     
+    // This will redirect to Google sign-in
     const result = await firebaseGoogleLogin();
     
-    if (result.success) {
-        localStorage.setItem('kaagaz_user', JSON.stringify({
-            loggedIn: true,
-            uid: result.user.uid,
-            email: result.user.email || '',
-            name: result.user.displayName || 'User',
-            photoURL: result.user.photoURL || '',
-            phone: result.user.phoneNumber || ''
-        }));
-        
-        window.location.href = 'dashboard.html';
-    } else {
+    if (!result.success && result.message) {
         alert(result.message || 'Google login failed');
     }
+    // If successful, user will be redirected and handled on return
 }
 
 // Phone Login Handler

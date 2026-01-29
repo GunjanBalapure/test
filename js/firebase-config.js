@@ -1,24 +1,48 @@
-// Firebase Configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyAxNI6m2Vbb6vAlOzQkQHa41tzhHelCr3k",
-    authDomain: "kaagaz-55163.firebaseapp.com",
-    projectId: "kaagaz-55163",
-    storageBucket: "kaagaz-55163.firebasestorage.app",
-    messagingSenderId: "44711337536",
-    appId: "1:447113375361:web:090ae41355c66d3dbfe780"
-};
-
-// Initialize Firebase (will be loaded from CDN in HTML)
+// Firebase Configuration - Loaded from backend environment variables
+let firebaseConfig = null;
 let auth;
 let db;
 
-function initFirebase() {
-    if (typeof firebase !== 'undefined') {
-        firebase.initializeApp(firebaseConfig);
-        auth = firebase.auth();
-        db = firebase.firestore();
-        console.log('✅ Firebase initialized');
+async function loadFirebaseConfig() {
+    try {
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+            throw new Error('Failed to load Firebase config');
+        }
+        firebaseConfig = await response.json();
+        return firebaseConfig;
+    } catch (error) {
+        console.error('Error loading Firebase config:', error);
+        // Fallback: use empty config (will fail gracefully)
+        return null;
     }
+}
+
+async function initFirebase() {
+    if (typeof firebase !== 'undefined') {
+        try {
+            // Load config from backend
+            if (!firebaseConfig) {
+                firebaseConfig = await loadFirebaseConfig();
+            }
+            
+            if (!firebaseConfig) {
+                console.error('❌ Firebase config not available');
+                return false;
+            }
+            
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log('✅ Firebase initialized');
+            return true;
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            return false;
+        }
+    }
+    return false;
 }
 
 // Authentication Functions
@@ -67,21 +91,36 @@ async function firebaseLogout() {
 async function firebaseGoogleLogin() {
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
-        const result = await auth.signInWithPopup(provider);
-        
-        // Store user data in Firestore
-        await db.collection('users').doc(result.user.uid).set({
-            name: result.user.displayName,
-            email: result.user.email,
-            photoURL: result.user.photoURL,
-            phone: result.user.phoneNumber || '',
-            lastLogin: new Date(),
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-        
-        return { success: true, user: result.user };
+        // Use redirect instead of popup to avoid CORS issues
+        await auth.signInWithRedirect(provider);
+        // Note: This will redirect and the callback will be handled on return
+        return { success: true };
     } catch (error) {
         console.error('Google login error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// Handle redirect result after Google login
+async function handleGoogleRedirect() {
+    try {
+        const result = await auth.getRedirectResult();
+        if (result.user) {
+            // Store user data in Firestore
+            await db.collection('users').doc(result.user.uid).set({
+                name: result.user.displayName,
+                email: result.user.email,
+                photoURL: result.user.photoURL,
+                phone: result.user.phoneNumber || '',
+                lastLogin: new Date(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            return { success: true, user: result.user };
+        }
+        return { success: false };
+    } catch (error) {
+        console.error('Google redirect error:', error);
         return { success: false, message: error.message };
     }
 }

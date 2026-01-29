@@ -186,12 +186,32 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script>
         // Initialize Firebase on load
-        window.onload = function() {
-            initFirebase();
+        window.onload = async function() {
+            await initFirebase();
             
+            // Check if user is already logged in
             const user = JSON.parse(localStorage.getItem('kaagaz_user') || '{}');
             if (user && user.loggedIn && user.uid) {
                 window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            // Handle Google redirect result
+            if (typeof handleGoogleRedirect === 'function') {
+                const result = await handleGoogleRedirect();
+                if (result && result.success && result.user) {
+                    // Store user data and redirect
+                    localStorage.setItem('kaagaz_user', JSON.stringify({
+                        loggedIn: true,
+                        uid: result.user.uid,
+                        email: result.user.email || '',
+                        name: result.user.displayName || 'User',
+                        photoURL: result.user.photoURL || '',
+                        phone: result.user.phoneNumber || ''
+                    }));
+                    
+                    window.location.href = 'dashboard.html';
+                }
             }
         };
     </script>
