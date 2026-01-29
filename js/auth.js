@@ -193,6 +193,7 @@ async function handlePhoneLogin() {
                 
                 if (verifyResult.success) {
                     const user = verifyResult.user;
+                    console.log('✅ Phone login successful:', user.phoneNumber);
                     
                     // Store or update user in Firestore
                     if (db) {
@@ -202,8 +203,9 @@ async function handlePhoneLogin() {
                                 lastLogin: new Date(),
                                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
                             }, { merge: true });
+                            console.log('✅ User data saved to Firestore');
                         } catch (error) {
-                            console.error('Firestore update error:', error);
+                            console.warn('⚠️ Firestore update error (non-critical):', error);
                         }
                     }
                     
@@ -216,6 +218,7 @@ async function handlePhoneLogin() {
                         photoURL: user.photoURL || ''
                     }));
                     
+                    console.log('Redirecting to dashboard...');
                     window.location.href = 'dashboard.html';
                 } else {
                     alert(verifyResult.message || 'OTP verification failed. Please try again.');

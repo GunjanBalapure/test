@@ -136,15 +136,13 @@ async function firebaseGoogleLogin() {
 // Handle redirect result after Google login
 async function handleGoogleRedirect() {
     try {
-        console.log('Checking for Google redirect result...');
+        console.log('Checking for redirect result...');
         const result = await auth.getRedirectResult();
         
-        console.log('Redirect result:', result);
-        
-        if (result && result.user) {
-            console.log('Google login successful:', result.user.email);
+        if (result.user) {
+            console.log('✅ User authenticated:', result.user.email);
             
-            // Store user data in Firestore
+            // Try to store user data in Firestore (non-blocking)
             try {
                 await db.collection('users').doc(result.user.uid).set({
                     name: result.user.displayName,
@@ -154,19 +152,19 @@ async function handleGoogleRedirect() {
                     lastLogin: new Date(),
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
-                console.log('User data saved to Firestore');
+                console.log('✅ User data saved to Firestore');
             } catch (firestoreError) {
-                console.error('Firestore save error:', firestoreError);
-                // Continue even if Firestore fails
+                console.warn('⚠️ Firestore save failed (non-critical):', firestoreError);
+                // Continue anyway - localStorage will have the data
             }
             
             return { success: true, user: result.user };
         }
         
         console.log('No redirect result found');
-        return { success: false, noResult: true };
+        return { success: false };
     } catch (error) {
-        console.error('Google redirect error:', error);
+        console.error('❌ Google redirect error:', error);
         return { success: false, message: error.message };
     }
 }
@@ -190,19 +188,27 @@ async function verifyOTP(otp) {
             throw new Error('Please request OTP first');
         }
         
+        console.log('Verifying OTP...');
         const result = await phoneConfirmationResult.confirm(otp);
         const user = result.user;
+        console.log('✅ OTP verified, user authenticated');
         
-        // Store user data in Firestore
-        await db.collection('users').doc(user.uid).set({
-            phone: user.phoneNumber,
-            lastLogin: new Date(),
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        // Try to store user data in Firestore (non-blocking)
+        try {
+            await db.collection('users').doc(user.uid).set({
+                phone: user.phoneNumber,
+                lastLogin: new Date(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            console.log('✅ User data saved to Firestore');
+        } catch (firestoreError) {
+            console.warn('⚠️ Firestore save failed (non-critical):', firestoreError);
+            // Continue anyway - localStorage will have the data
+        }
         
         return { success: true, user };
     } catch (error) {
-        console.error('OTP verification error:', error);
+        console.error('❌ OTP verification error:', error);
         return { success: false, message: error.message };
     }
 }

@@ -201,61 +201,63 @@
         
         // Initialize Firebase on load
         window.addEventListener('DOMContentLoaded', async function() {
-            console.log('Page loaded, initializing Firebase...');
+            console.log('🚀 Page loaded, initializing Firebase...');
             const firebaseReady = await initFirebase();
             
             if (!firebaseReady) {
-                console.error('Firebase failed to initialize');
+                console.error('❌ Firebase failed to initialize');
                 alert('Authentication service unavailable. Please try again later.');
                 return;
             }
             
-            console.log('Firebase ready, checking authentication...');
+            console.log('✅ Firebase ready, checking for existing session...');
             
-            // Handle Google redirect result FIRST before checking localStorage
+            // Handle Google redirect result FIRST
             try {
+                console.log('Checking for Google redirect result...');
                 const result = await handleGoogleRedirect();
-                console.log('Google redirect check result:', result);
                 
                 if (result && result.success && result.user) {
-                    console.log('Google login succeeded, saving user data...');
+                    console.log('✅ Google login successful:', result.user.email);
                     
                     // Store user data and redirect
-                    const userData = {
+                    localStorage.setItem('kaagaz_user', JSON.stringify({
                         loggedIn: true,
                         uid: result.user.uid,
                         email: result.user.email || '',
                         name: result.user.displayName || 'User',
                         photoURL: result.user.photoURL || '',
                         phone: result.user.phoneNumber || ''
-                    };
+                    }));
                     
-                    localStorage.setItem('kaagaz_user', JSON.stringify(userData));
-                    console.log('User data saved, redirecting to dashboard...');
-                    
-                    // Small delay to ensure localStorage is written
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 100);
-                    return;
+                    console.log('Redirecting to dashboard...');
+                    window.location.href = 'dashboard.html';
+                    return; // Stop execution
+                } else {
+                    console.log('No Google redirect result found');
                 }
             } catch (error) {
-                console.error('Redirect handling error:', error);
+                console.error('❌ Redirect handling error:', error);
             }
             
-            // Check if user is already logged in (regular login)
+            // Check if user is already logged in
             const user = JSON.parse(localStorage.getItem('kaagaz_user') || '{}');
             if (user && user.loggedIn && user.uid) {
-                console.log('Existing session found');
-                // Verify with Firebase
-                if (auth && auth.currentUser && auth.currentUser.uid === user.uid) {
-                    console.log('Session valid, redirecting to dashboard...');
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
+                console.log('Found existing session for:', user.email || user.phone);
+                
+                // Verify with Firebase auth state
+                auth.onAuthStateChanged((firebaseUser) => {
+                    if (firebaseUser && firebaseUser.uid === user.uid) {
+                        console.log('✅ Session verified, redirecting to dashboard');
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        console.log('Session mismatch, clearing localStorage');
+                        localStorage.removeItem('kaagaz_user');
+                    }
+                });
+            } else {
+                console.log('No existing session found');
             }
-            
-            console.log('No active session, showing login page');
         });
     </script>
 </body>
