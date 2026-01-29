@@ -18,7 +18,7 @@ module.exports = async (req, res) => {
             return res.status(400).json({ message: 'Invalid upload data' });
         }
 
-        const file = files.document;
+        const file = Array.isArray(files.document) ? files.document[0] : files.document;
         if (!file) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
@@ -33,12 +33,15 @@ module.exports = async (req, res) => {
                 ]
             });
 
+            const name = Array.isArray(fields.name) ? fields.name[0] : fields.name;
+            const type = Array.isArray(fields.type) ? fields.type[0] : fields.type;
+
             return res.status(201).json({
                 success: true,
                 message: 'Document uploaded successfully',
                 document: {
-                    name: fields.name || file.originalFilename,
-                    type: fields.type || 'Other',
+                    name: name || file.originalFilename,
+                    type: type || 'Other',
                     url: result.secure_url,
                     publicId: result.public_id,
                     uploadedAt: new Date()
