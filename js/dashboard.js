@@ -164,21 +164,27 @@ async function sendToGemini() {
     const history = document.getElementById('chatHistory');
     const query = input.value;
     if (!query) return;
-    // Ensure config is loaded
-    if (!window.CONFIG) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-    }
 
     const systemPrompt = "You are Google Kaagaz AI. Only discuss documents and Indian government schemes. Handle irrelevant questions politely.";
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${window.CONFIG.GEMINI_MODEL}:generateContent?key=${window.CONFIG.GEMINI_API_KEY}`, {
+        // Call backend API instead of exposing API key
+        const response = await fetch('/api/chat', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt} User Query: ${query}` }] }] })
+            body: JSON.stringify({ 
+                query: query,
+                systemPrompt: systemPrompt
+            })
         });
+        
         const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to get response');
+        }
+        
+        const text = data.text || "No response";
 
         // Append AI response to UI with better visibility
         history.innerHTML += `<div class="ai-msg bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-maroon/20 rounded-2xl p-6 mb-4"><p class="font-bold mb-2 text-maroon">🤖 Gemini AI:</p><p class="font-medium text-gray-800">${text}</p></div>`;

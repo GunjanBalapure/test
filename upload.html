@@ -146,37 +146,13 @@
             try {
             const uploadResult = await uploadToCloudinary(file);
 
-                const prompt = `Analyze this document image and extract all relevant information. Provide a detailed analysis in the following JSON format:
-{
-  "documentType": "type of document (e.g., Aadhaar, PAN, Marksheet, Insurance, etc.)",
-  "category": "category (Identity/Education/Financial/Medical/Legal/Other)",
-  "title": "descriptive title",
-  "issuer": "issuing authority or organization",
-  "holderName": "name of the person",
-  "documentNumber": "document ID or number if visible",
-  "issueDate": "issue date if visible",
-  "expiryDate": "expiry date if visible or 'N/A'",
-  "keyDetails": ["list", "of", "important", "details", "extracted"],
-  "summary": "brief 2-3 sentence summary"
-}
-
-Be thorough and extract as much information as possible. If information is not clearly visible, use 'Not visible' or 'N/A'.`;
-
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${window.CONFIG.GEMINI_MODEL}:generateContent?key=${window.CONFIG.GEMINI_API_KEY}`, {
+                // Call backend API for analysis (keeps API key secure)
+                const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: prompt },
-                                {
-                                    inline_data: {
-                                        mime_type: file.type,
-                                        data: base64Data
-                                    }
-                                }
-                            ]
-                        }]
+                        imageData: base64Data,
+                        mimeType: file.type
                     })
                 });
 
@@ -184,35 +160,26 @@ Be thorough and extract as much information as possible. If information is not c
                 
                 // Check for API errors
                 if (!response.ok) {
-                    throw new Error(data.error?.message || `API error: ${response.status}`);
+                    throw new Error(data.error || `API error: ${response.status}`);
                 }
                 
-                // Safely access nested properties
-                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-                    throw new Error('Invalid API response: No candidates returned');
+                if (!data.success || !data.analysis) {
+                    throw new Error('Invalid API response');
                 }
                 
-                const analysisText = data.candidates[0].content.parts[0].text;
-                
-                // Extract JSON from response
-                const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-                const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+                const analysis = data.analysis;
 
-                if (analysis) {
-                    currentDocument = {
-                        id: Date.now(),
-                        fileName: file.name,
-                        fileSize: file.size,
-                        uploadDate: new Date().toISOString(),
-                        analysis: analysis,
-                        thumbnail: URL.createObjectURL(file),
-                        url: uploadResult?.url || '',
-                        publicId: uploadResult?.publicId || ''
-                    };
-                    displayAnalysis(analysis);
-                } else {
-                    throw new Error('Failed to parse analysis');
-                }
+                currentDocument = {
+                    id: Date.now(),
+                    fileName: file.name,
+                    fileSize: file.size,
+                    uploadDate: new Date().toISOString(),
+                    analysis: analysis,
+                    thumbnail: URL.createObjectURL(file),
+                    url: uploadResult?.url || '',
+                    publicId: uploadResult?.publicId || ''
+                };
+                displayAnalysis(analysis);
             } catch (error) {
                 console.error('Analysis error:', error);
                 document.getElementById('uploadProgress').classList.add('hidden');

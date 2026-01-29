@@ -1,9 +1,12 @@
-// Configuration file - loads environment variables
-// API Key from .env file: AIzaSyBkWDDdibrPgpyVdO3t8GpmQsE-b5Zu6w0
+// Configuration file - API keys are now handled securely on the backend
+// Frontend only contains non-sensitive configuration
 
 window.CONFIG = {
-    GEMINI_API_KEY: 'AIzaSyBkWDDdibrPgpyVdO3t8GpmQsE-b5Zu6w0',
-    GEMINI_MODEL: 'gemini-2.5-flash'
+    // API endpoints
+    API_BASE_URL: '/api',
+    
+    // No API keys exposed in frontend for security
+    // All API calls go through backend endpoints
 };
 
-console.log('✓ Gemini API configured with model:', window.CONFIG.GEMINI_MODEL);
+console.log('✓ Config loaded - API keys secured on backend');
