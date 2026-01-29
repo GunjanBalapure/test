@@ -178,26 +178,50 @@
         </div>
     </div>
 
-    <script src="js/firebase-config.js"></script>
-    <script src="js/auth.js"></script>
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK - Load First -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Custom Scripts - Load After Firebase -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    
     <script>
+        // Toggle between Login and Signup forms
+        function showSignup() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+        }
+        
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupForm').style.display = 'none';
+        }
+        
         // Initialize Firebase on load
-        window.onload = async function() {
-            await initFirebase();
+        window.addEventListener('DOMContentLoaded', async function() {
+            console.log('Initializing Firebase...');
+            const firebaseReady = await initFirebase();
+            
+            if (!firebaseReady) {
+                console.error('Firebase failed to initialize');
+                alert('Authentication service unavailable. Please try again later.');
+                return;
+            }
             
             // Check if user is already logged in
             const user = JSON.parse(localStorage.getItem('kaagaz_user') || '{}');
             if (user && user.loggedIn && user.uid) {
-                window.location.href = 'dashboard.html';
-                return;
+                // Verify with Firebase
+                if (auth && auth.currentUser && auth.currentUser.uid === user.uid) {
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
             }
             
             // Handle Google redirect result
-            if (typeof handleGoogleRedirect === 'function') {
+            try {
                 const result = await handleGoogleRedirect();
                 if (result && result.success && result.user) {
                     // Store user data and redirect
@@ -212,8 +236,10 @@
                     
                     window.location.href = 'dashboard.html';
                 }
+            } catch (error) {
+                console.error('Redirect handling error:', error);
             }
-        };
+        });
     </script>
 </body>
 </html>

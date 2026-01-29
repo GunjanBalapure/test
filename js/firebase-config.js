@@ -34,30 +34,47 @@ async function loadFirebaseConfig() {
 }
 
 async function initFirebase() {
-    if (typeof firebase !== 'undefined') {
-        try {
-            // Load config from backend or fallback
-            if (!firebaseConfig) {
-                firebaseConfig = await loadFirebaseConfig();
-            }
-            
-            if (!firebaseConfig) {
-                console.error('❌ Firebase config not available');
-                return false;
-            }
-            
-            // Initialize Firebase
-            firebase.initializeApp(firebaseConfig);
+    if (typeof firebase === 'undefined') {
+        console.error('❌ Firebase SDK not loaded');
+        return false;
+    }
+    
+    try {
+        // Check if already initialized
+        if (firebase.apps && firebase.apps.length > 0) {
             auth = firebase.auth();
             db = firebase.firestore();
-            console.log('✅ Firebase initialized');
+            console.log('✅ Firebase already initialized');
             return true;
-        } catch (error) {
-            console.error('Firebase initialization error:', error);
+        }
+        
+        // Load config from backend or fallback
+        if (!firebaseConfig) {
+            console.log('Loading Firebase config...');
+            firebaseConfig = await loadFirebaseConfig();
+        }
+        
+        if (!firebaseConfig) {
+            console.error('❌ Firebase config not available');
             return false;
         }
+        
+        console.log('Initializing Firebase with config:', {
+            projectId: firebaseConfig.projectId,
+            authDomain: firebaseConfig.authDomain
+        });
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        
+        console.log('✅ Firebase initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Firebase initialization error:', error);
+        return false;
     }
-    return false;
 }
 
 // Authentication Functions

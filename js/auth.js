@@ -91,18 +91,25 @@ async function handleRegister(event) {
 
 // Google Login Handler
 async function handleGoogleLogin() {
-    if (typeof firebase === 'undefined' || !firebase.auth) {
-        alert('Firebase not initialized. Please refresh the page.');
-        return;
+    try {
+        if (typeof firebase === 'undefined' || !auth) {
+            alert('Firebase not initialized. Please refresh the page.');
+            return;
+        }
+        
+        console.log('Starting Google login...');
+        
+        // This will redirect to Google sign-in
+        const result = await firebaseGoogleLogin();
+        
+        if (!result.success && result.message) {
+            alert('Google login error: ' + result.message);
+        }
+        // If successful, user will be redirected and handled on return
+    } catch (error) {
+        console.error('Google login handler error:', error);
+        alert('Failed to start Google login. Please try again.');
     }
-    
-    // This will redirect to Google sign-in
-    const result = await firebaseGoogleLogin();
-    
-    if (!result.success && result.message) {
-        alert(result.message || 'Google login failed');
-    }
-    // If successful, user will be redirected and handled on return
 }
 
 // Phone Login Handler
@@ -110,67 +117,118 @@ let recaptchaVerifier;
 let isOTPSent = false;
 
 function initRecaptcha() {
-    if (!recaptchaVerifier) {
-        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('phone-login-btn', {
-            'size': 'invisible',
-            'callback': () => {
-                console.log('reCAPTCHA solved');
-            }
-        });
+    try {
+        if (!recaptchaVerifier && auth) {
+            recaptchaVerifier = new firebase.auth.RecaptchaVerifier('phone-login-btn', {
+                'size': 'invisible',
+                'callback': () => {
+                    console.log('reCAPTCHA solved');
+                },
+                'error-callback': (error) => {
+                    console.error('reCAPTCHA error:', error);
+                }
+            });
+        }
+        return true;
+    } catch (error) {
+        console.error('reCAPTCHA initialization error:', error);
+        return false;
     }
 }
 
 async function handlePhoneLogin() {
-    if (typeof firebase === 'undefined' || !firebase.auth) {
-        alert('Firebase not initialized. Please refresh the page.');
-        return;
-    }
-    
-    if (!isOTPSent) {
-        // Show phone input modal
-        const phoneNumber = prompt('Enter your phone number with country code (e.g., +919876543210):');
-        
-        if (!phoneNumber) return;
-        
-        if (!phoneNumber.startsWith('+')) {
-            alert('Please include country code (e.g., +91 for India)');
+    try {
+        if (typeof firebase === 'undefined' || !auth) {
+            alert('Firebase not initialized. Please refresh the page.');
             return;
         }
         
-        initRecaptcha();
-        const result = await firebasePhoneLogin(phoneNumber, recaptchaVerifier);
-        
-        if (result.success) {
-            isOTPSent = true;
+        if (!isOTPSent) {
+            // Show phone input modal
+            const phoneNumber = prompt('Enter your phone number with country code (e.g., +919876543210):');
             
-            // Show OTP input
-            const otp = prompt('Enter the 6-digit OTP sent to your phone:');
+            if (!phoneNumber) return;
             
-            if (!otp) {
-                isOTPSent = false;
+            if (!phoneNumber.startsWith('+')) {
+                alert('Please include country code (e.g., +91 for India)');
                 return;
             }
             
-            const verifyResult = await verifyOTP(otp);
-            
-            if (verifyResult.success) {
-                localStorage.setItem('kaagaz_user', JSON.stringify({
-                    loggedIn: true,
-                    uid: verifyResult.user.uid,
-                    phone: verifyResult.user.phoneNumber,
-                    name: verifyResult.user.phoneNumber,
-                    email: '',
-                    photoURL: ''
-                }));
-                
-                window.location.href = 'dashboard.html';
-            } else {
-                alert(verifyResult.message || 'OTP verification failed');
-                isOTPSent = false;
+            // Validate phone number format
+            if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
+                alert('Invalid phone number format. Use format: +919876543210');
+                return;
             }
-        } else {
-            alert(result.message || 'Failed to send OTP');
+            
+            // Initialize reCAPTCHA
+            const recaptchaReady = initRecaptcha();
+            if (!recaptchaReady) {
+                alert('Security verification failed. Please refresh and try again.');
+                return;
+            }
+            
+            console.log('Sending OTP to:', phoneNumber);
+            const result = await firebasePhoneLogin(phoneNumber, recaptchaVerifier);
+            
+            if (result.success) {
+                isOTPSent = true;
+                
+                // Show OTP input
+                const otp = prompt('Enter the 6-digit OTP sent to your phone:');
+                
+                if (!otp) {
+                    isOTPSent = false;
+                    alert('OTP entry cancelled');
+                    return;
+                }
+                
+                if (!/^\d{6}$/.test(otp)) {
+                    alert('Invalid OTP format. Please enter 6 digits.');
+                    isOTPSent = false;
+                    return;
+                }
+                
+                console.log('Verifying OTP...');
+                const verifyResult = await verifyOTP(otp);
+                
+                if (verifyResult.success) {
+                    const user = verifyResult.user;
+                    
+                    // Store or update user in Firestore
+                    if (db) {
+                        try {
+                            await db.collection('users').doc(user.uid).set({
+                                phone: user.phoneNumber,
+                                lastLogin: new Date(),
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true });
+                        } catch (error) {
+                            console.error('Firestore update error:', error);
+                        }
+                    }
+                    
+                    localStorage.setItem('kaagaz_user', JSON.stringify({
+                        loggedIn: true,
+                        uid: user.uid,
+                        phone: user.phoneNumber,
+                        name: user.displayName || user.phoneNumber,
+                        email: user.email || '',
+                        photoURL: user.photoURL || ''
+                    }));
+                    
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert(verifyResult.message || 'OTP verification failed. Please try again.');
+                    isOTPSent = false;
+                }
+            } else {
+                alert(result.message || 'Failed to send OTP. Please check your phone number and try again.');
+            }
         }
+    } catch (error) {
+        console.error('Phone login error:', error);
+        alert('Phone login failed: ' + (error.message || 'Unknown error'));
+        isOTPSent = false;
     }
 }
 
