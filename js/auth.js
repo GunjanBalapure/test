@@ -1,11 +1,3 @@
-// Demo Mode - Default User
-const DEFAULT_USER = {
-    uid: 'demo-user-123',
-    email: 'demo@kaagaz.ai',
-    name: 'Demo User',
-    photoURL: null
-};
-
 // Login Form Handler
 async function handleLogin(event) {
     event.preventDefault();
@@ -13,41 +5,32 @@ async function handleLogin(event) {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     
-    // Demo mode - accept any credentials
     if (!email || !password) {
         alert('Please enter email and password');
         return;
     }
     
     // Check if Firebase is available
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-        const result = await firebaseLogin(email, password);
-        
-        if (result.success) {
-            localStorage.setItem('kaagaz_user', JSON.stringify({
-                loggedIn: true,
-                uid: result.user.uid,
-                email: result.user.email,
-                name: result.user.displayName || result.user.email.split('@')[0]
-            }));
-            
-            window.location.href = 'dashboard.html';
-            return;
-        } else {
-            alert(result.message || 'Login failed');
-            return;
-        }
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+        alert('Firebase not initialized. Please refresh the page.');
+        return;
     }
     
-    // Fallback: Demo mode
-    localStorage.setItem('kaagaz_user', JSON.stringify({
-        loggedIn: true,
-        uid: DEFAULT_USER.uid,
-        email: email,
-        name: email.split('@')[0]
-    }));
+    const result = await firebaseLogin(email, password);
     
-    window.location.href = 'dashboard.html';
+    if (result.success) {
+        localStorage.setItem('kaagaz_user', JSON.stringify({
+            loggedIn: true,
+            uid: result.user.uid,
+            email: result.user.email,
+            name: result.user.displayName || result.user.email.split('@')[0],
+            photoURL: result.user.photoURL || ''
+        }));
+        
+        window.location.href = 'dashboard.html';
+    } else {
+        alert(result.message || 'Login failed');
+    }
 }
 
 // Register Form Handler
@@ -56,82 +39,148 @@ async function handleRegister(event) {
     
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
+    const phone = document.getElementById('signupPhone').value;
     const password = document.getElementById('signupPassword').value;
+    const confirmPassword = document.getElementById('signupConfirmPassword').value;
     
     if (!name || !email || !password) {
-        alert('Please fill all fields');
+        alert('Please fill all required fields');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        alert('Passwords do not match');
+        return;
+    }
+    
+    if (password.length < 6) {
+        alert('Password must be at least 6 characters');
         return;
     }
     
     // Check if Firebase is available
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-        const result = await firebaseRegister(name, email, password);
-        
-        if (result.success) {
-            localStorage.setItem('kaagaz_user', JSON.stringify({
-                loggedIn: true,
-                uid: result.user.uid,
-                email: result.user.email,
-                name: name
-            }));
-            
-            window.location.href = 'dashboard.html';
-            return;
-        } else {
-            alert(result.message || 'Registration failed');
-            return;
-        }
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+        alert('Firebase not initialized. Please refresh the page.');
+        return;
     }
     
-    // Fallback: Demo mode
-    localStorage.setItem('kaagaz_user', JSON.stringify({
-        loggedIn: true,
-        uid: `user-${Date.now()}`,
-        email: email,
-        name: name
-    }));
+    const result = await firebaseRegister(name, email, password);
     
-    window.location.href = 'dashboard.html';
+    if (result.success) {
+        // Update Firestore with phone number if provided
+        if (phone && db) {
+            await db.collection('users').doc(result.user.uid).update({
+                phone: phone
+            });
+        }
+        
+        localStorage.setItem('kaagaz_user', JSON.stringify({
+            loggedIn: true,
+            uid: result.user.uid,
+            email: result.user.email,
+            name: name,
+            phone: phone || '',
+            photoURL: ''
+        }));
+        
+        window.location.href = 'dashboard.html';
+    } else {
+        alert(result.message || 'Registration failed');
+    }
 }
 
 // Google Login Handler
 async function handleGoogleLogin() {
-    // Check if Firebase is available
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-        const result = await firebaseGoogleLogin();
-        
-        if (result.success) {
-            localStorage.setItem('kaagaz_user', JSON.stringify({
-                loggedIn: true,
-                uid: result.user.uid,
-                email: result.user.email,
-                name: result.user.displayName,
-                photoURL: result.user.photoURL
-            }));
-            
-            window.location.href = 'dashboard.html';
-            return;
-        } else {
-            alert(result.message || 'Google login failed');
-            return;
-        }
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+        alert('Firebase not initialized. Please refresh the page.');
+        return;
     }
     
-    // Fallback: Demo mode
-    alert('Google Sign-In not available in demo mode');
+    const result = await firebaseGoogleLogin();
+    
+    if (result.success) {
+        localStorage.setItem('kaagaz_user', JSON.stringify({
+            loggedIn: true,
+            uid: result.user.uid,
+            email: result.user.email || '',
+            name: result.user.displayName || 'User',
+            photoURL: result.user.photoURL || '',
+            phone: result.user.phoneNumber || ''
+        }));
+        
+        window.location.href = 'dashboard.html';
+    } else {
+        alert(result.message || 'Google login failed');
+    }
 }
 
-// Auto-login with default user (for demo)
-function autoLoginDemo() {
-    console.log('🚀 Demo mode activated!');
-    localStorage.setItem('kaagaz_user', JSON.stringify({
-        loggedIn: true,
-        uid: DEFAULT_USER.uid,
-        email: DEFAULT_USER.email,
-        name: DEFAULT_USER.name
-    }));
+// Phone Login Handler
+let recaptchaVerifier;
+let isOTPSent = false;
+
+function initRecaptcha() {
+    if (!recaptchaVerifier) {
+        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('phone-login-btn', {
+            'size': 'invisible',
+            'callback': () => {
+                console.log('reCAPTCHA solved');
+            }
+        });
+    }
+}
+
+async function handlePhoneLogin() {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+        alert('Firebase not initialized. Please refresh the page.');
+        return;
+    }
     
-    window.location.href = 'dashboard.html';
+    if (!isOTPSent) {
+        // Show phone input modal
+        const phoneNumber = prompt('Enter your phone number with country code (e.g., +919876543210):');
+        
+        if (!phoneNumber) return;
+        
+        if (!phoneNumber.startsWith('+')) {
+            alert('Please include country code (e.g., +91 for India)');
+            return;
+        }
+        
+        initRecaptcha();
+        const result = await firebasePhoneLogin(phoneNumber, recaptchaVerifier);
+        
+        if (result.success) {
+            isOTPSent = true;
+            
+            // Show OTP input
+            const otp = prompt('Enter the 6-digit OTP sent to your phone:');
+            
+            if (!otp) {
+                isOTPSent = false;
+                return;
+            }
+            
+            const verifyResult = await verifyOTP(otp);
+            
+            if (verifyResult.success) {
+                localStorage.setItem('kaagaz_user', JSON.stringify({
+                    loggedIn: true,
+                    uid: verifyResult.user.uid,
+                    phone: verifyResult.user.phoneNumber,
+                    name: verifyResult.user.phoneNumber,
+                    email: '',
+                    photoURL: ''
+                }));
+                
+                window.location.href = 'dashboard.html';
+            } else {
+                alert(verifyResult.message || 'OTP verification failed');
+                isOTPSent = false;
+            }
+        } else {
+            alert(result.message || 'Failed to send OTP');
+        }
+    }
 }
 
 // Tab switching functions

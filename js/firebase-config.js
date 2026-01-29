@@ -1,11 +1,11 @@
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAxNI6m2Vbb6vAlOzQkQHa41tzhHelCr3k",
+    authDomain: "kaagaz-55163.firebaseapp.com",
+    projectId: "kaagaz-55163",
+    storageBucket: "kaagaz-55163.firebasestorage.app",
+    messagingSenderId: "44711337536",
+    appId: "1:447113375361:web:090ae41355c66d3dbfe780"
 };
 
 // Initialize Firebase (will be loaded from CDN in HTML)
@@ -74,12 +74,86 @@ async function firebaseGoogleLogin() {
             name: result.user.displayName,
             email: result.user.email,
             photoURL: result.user.photoURL,
-            createdAt: new Date()
+            phone: result.user.phoneNumber || '',
+            lastLogin: new Date(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
         
         return { success: true, user: result.user };
     } catch (error) {
         console.error('Google login error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// Phone Authentication
+let phoneConfirmationResult = null;
+
+async function firebasePhoneLogin(phoneNumber, recaptchaVerifier) {
+    try {
+        phoneConfirmationResult = await auth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier);
+        return { success: true, message: 'OTP sent successfully' };
+    } catch (error) {
+        console.error('Phone login error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+async function verifyOTP(otp) {
+    try {
+        if (!phoneConfirmationResult) {
+            throw new Error('Please request OTP first');
+        }
+        
+        const result = await phoneConfirmationResult.confirm(otp);
+        const user = result.user;
+        
+        // Store user data in Firestore
+        await db.collection('users').doc(user.uid).set({
+            phone: user.phoneNumber,
+            lastLogin: new Date(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        
+        return { success: true, user };
+    } catch (error) {
+        console.error('OTP verification error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// Get user profile from Firestore
+async function getUserProfile(uid) {
+    try {
+        const doc = await db.collection('users').doc(uid).get();
+        if (doc.exists) {
+            return { success: true, data: doc.data() };
+        }
+        return { success: false, message: 'User not found' };
+    } catch (error) {
+        console.error('Get profile error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// Update user profile
+async function updateUserProfile(uid, data) {
+    try {
+        await db.collection('users').doc(uid).update({
+            ...data,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Update Firebase Auth profile if name is changed
+        if (data.name && auth.currentUser) {
+            await auth.currentUser.updateProfile({
+                displayName: data.name
+            });
+        }
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Update profile error:', error);
         return { success: false, message: error.message };
     }
 }
